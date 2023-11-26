@@ -8,6 +8,43 @@ import base64
 app = Flask(__name__)
 
 
+
+
+@app.route('/generar_claves', methods=['POST'])
+def generar_claves():
+    try:
+        password = request.form['password']
+
+        # Generar par de claves RSA
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
+        )
+        public_key = private_key.public_key()
+
+        # Guardar clave privada protegida con contraseña
+        private_key_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.BestAvailableEncryption(password.encode())
+        )
+        with open('clave_privada.pem', 'wb') as private_key_file:
+            private_key_file.write(private_key_pem)
+
+        # Guardar clave pública
+        public_key_pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        with open('clave_publica.pem', 'wb') as public_key_file:
+            public_key_file.write(public_key_pem)
+
+        return jsonify({'mensaje': 'Par de claves RSA generado y guardado correctamente'})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 @app.route('/firmar', methods=['POST'])
 def firmar_archivo():
     try:
