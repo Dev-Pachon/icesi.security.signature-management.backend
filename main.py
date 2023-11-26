@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
@@ -15,7 +15,6 @@ def generar_claves():
     try:
         password = request.form['password']
 
-        # Generar par de claves RSA
         private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
@@ -23,7 +22,6 @@ def generar_claves():
         )
         public_key = private_key.public_key()
 
-        # Guardar clave privada protegida con contraseña
         private_key_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -32,7 +30,6 @@ def generar_claves():
         with open('clave_privada.pem', 'wb') as private_key_file:
             private_key_file.write(private_key_pem)
 
-        # Guardar clave pública
         public_key_pem = public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
@@ -40,10 +37,28 @@ def generar_claves():
         with open('clave_publica.pem', 'wb') as public_key_file:
             public_key_file.write(public_key_pem)
 
-        return jsonify({'mensaje': 'Par de claves RSA generado y guardado correctamente'})
+        clave_privada_str = private_key_pem.decode('utf-8')
+        clave_publica_str = public_key_pem.decode('utf-8')
+
+        return jsonify({
+            'mensaje': 'Par de claves RSA generado y guardado correctamente',
+            'clave_privada': clave_privada_str,
+            'clave_publica': clave_publica_str,
+            'ruta_clave_privada': '/descargar/clave_privada',
+            'ruta_clave_publica': '/descargar/clave_publica'
+        })
 
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@app.route('/descargar/clave_privada')
+def descargar_clave_privada():
+    return send_file('clave_privada.pem', as_attachment=True)
+
+@app.route('/descargar/clave_publica')
+def descargar_clave_publica():
+    return send_file('clave_publica.pem', as_attachment=True)
+
 
 @app.route('/firmar', methods=['POST'])
 def firmar_archivo():
