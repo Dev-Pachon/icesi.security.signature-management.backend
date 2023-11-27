@@ -3,6 +3,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
+from cryptography.exceptions import InvalidSignature
 from flask_cors import CORS
 import base64
 
@@ -87,11 +88,11 @@ def firmar_archivo():
             hashes.SHA256()
         )
 
-        signature_base64 = base64.b64encode(signature).decode('utf-8')
+        signature_base64 = base64.b64encode(signature)
 
         return jsonify({
             'mensaje': 'Firma digital generada correctamente',
-            'firma':signature_base64
+            'firma':signature_base64.decode('utf-8')
         })
 
     except Exception as e:
@@ -101,22 +102,32 @@ def firmar_archivo():
 @app.route('/verificar_firma', methods=['POST'])
 def verificar_firma():
     try:
+        if 'archivo_original' not in request.files:
+            raise Exception('Debe proporcionar el archivo original.')
+        
+        if 'clave_publica' not in request.files:
+            raise Exception('Debe proporcionar la clave publica.')
+        
+        if 'firma' not in request.files:
+            raise Exception('Debe proporcionar la firma.')
+        
         archivo_original = request.files['archivo_original']
-        firma_file = request.files['firma_file']
-        public_key_pem = request.form['public_key']
-
-        public_key = serialization.load_pem_public_key(
-            public_key_pem.encode(),
-            backend=default_backend()
-        )
+        firma_file = request.files['firma']
+        public_key_pem = request.files['clave_publica']
 
         archivo_original_data = archivo_original.read()
         firma_data = firma_file.read()
+        public_key_pem_data = public_key_pem.read()
 
-        signature = base64.b64decode(firma_data)
+        firma_data_bytes = base64.b64decode(firma_data)
+
+        public_key = serialization.load_pem_public_key(
+            public_key_pem_data,
+            backend=default_backend()
+        )
 
         public_key.verify(
-            signature,
+            firma_data_bytes,
             archivo_original_data,
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
@@ -126,7 +137,8 @@ def verificar_firma():
         )
 
         return jsonify({'mensaje': 'Firma verificada correctamente'})
-
+    except InvalidSignature as e:
+         return jsonify({'error': 'Firma invalida.'}), 400
     except (ValueError, TypeError) as e:
         return jsonify({'error': 'Error de formato en los datos proporcionados.'}), 400
     except (Exception, ValueError, TypeError) as e:
