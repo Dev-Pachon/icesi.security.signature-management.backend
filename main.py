@@ -1,23 +1,29 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
+from flask_cors import CORS
 import base64
+
+KEY_SIZE = 4096
+PUBLIC_EXPONENT = 65537
 
 app = Flask(__name__)
 
-
-
+CORS(app)
 
 @app.route('/generar_claves', methods=['POST'])
 def generar_claves():
     try:
         password = request.form['password']
 
+        if not password:
+            raise Exception('Debe proporcionar una contraseña.')
+
         private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
+            public_exponent=PUBLIC_EXPONENT,
+            key_size=KEY_SIZE,
             backend=default_backend()
         )
         public_key = private_key.public_key()
@@ -27,48 +33,46 @@ def generar_claves():
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.BestAvailableEncryption(password.encode())
         )
-        with open('clave_privada.pem', 'wb') as private_key_file:
-            private_key_file.write(private_key_pem)
 
         public_key_pem = public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
-        with open('clave_publica.pem', 'wb') as public_key_file:
-            public_key_file.write(public_key_pem)
 
         clave_privada_str = private_key_pem.decode('utf-8')
         clave_publica_str = public_key_pem.decode('utf-8')
 
         return jsonify({
-            'mensaje': 'Par de claves RSA generado y guardado correctamente',
+            'mensaje': 'Par de claves RSA generado correctamente.',
             'clave_privada': clave_privada_str,
-            'clave_publica': clave_publica_str,
-            'ruta_clave_privada': '/descargar/clave_privada',
-            'ruta_clave_publica': '/descargar/clave_publica'
+            'clave_publica': clave_publica_str
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route('/descargar/clave_privada')
-def descargar_clave_privada():
-    return send_file('clave_privada.pem', as_attachment=True)
-
-@app.route('/descargar/clave_publica')
-def descargar_clave_publica():
-    return send_file('clave_publica.pem', as_attachment=True)
+        return jsonify({'error': str(e)}), 400
 
 
 @app.route('/firmar', methods=['POST'])
 def firmar_archivo():
     try:
+        if 'archivo' not in request.files:
+            raise Exception('Debe proporcionar un archivo.')
+        
+        if 'clave_privada' not in request.files:
+            raise Exception('Debe proporcionar una clave privada.')
+        
+        if 'password' not in request.form:
+            raise Exception('Debe proporcionar una contraseña.')
+
         archivo = request.files['archivo']
-        private_key_pem = request.form['private_key']
+        private_key_pem = request.files['clave_privada']
+        password = request.form['password']
+
+        private_key_pem_decoded = private_key_pem.read()
 
         private_key = serialization.load_pem_private_key(
-            private_key_pem.encode(),
-            password=None,
+            private_key_pem_decoded,
+            password=password.encode(),
             backend=default_backend()
         )
 
@@ -85,13 +89,13 @@ def firmar_archivo():
 
         signature_base64 = base64.b64encode(signature).decode('utf-8')
 
-        with open('firma_digital.txt', 'w') as firma_file:
-            firma_file.write(signature_base64)
-
-        return jsonify({'mensaje': 'Firma digital generada y guardada correctamente'})
+        return jsonify({
+            'mensaje': 'Firma digital generada correctamente',
+            'firma':signature_base64
+        })
 
     except Exception as e:
-        return jsonify({'error': str(e)})
+        return jsonify({'error': str(e)}), 400
         
 
 @app.route('/verificar_firma', methods=['POST'])
@@ -124,9 +128,9 @@ def verificar_firma():
         return jsonify({'mensaje': 'Firma verificada correctamente'})
 
     except (ValueError, TypeError) as e:
-        return jsonify({'error': 'Error de formato en los datos proporcionados.'})
+        return jsonify({'error': 'Error de formato en los datos proporcionados.'}), 400
     except (Exception, ValueError, TypeError) as e:
-        return jsonify({'error': f'Error al verificar la firma: {str(e)}'})
+        return jsonify({'error': f'Error al verificar la firma: {str(e)}'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
