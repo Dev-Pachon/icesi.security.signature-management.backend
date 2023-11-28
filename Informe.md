@@ -47,6 +47,17 @@ Se manejan excepciones para responder a situaciones de error con mensajes inform
 
 ## Dificultades
 
+1. **Gestión de Contraseñas y Seguridad:**
+   - La seguridad en el manejo de contraseñas para proteger la clave privada es un área crítica. La aplicación actual puede beneficiarse de medidas adicionales para garantizar un almacenamiento seguro y una gestión robusta de contraseñas.
+
+2. **Seguridad de Archivos:**
+   - La seguridad en la manipulación de archivos, especialmente la clave privada, debe ser abordada con mayor énfasis. Se requieren medidas adicionales para garantizar la integridad y confidencialidad de estos archivos sensibles.
+
+3. **Validación de Entrada:**
+   - La validación de entradas de usuario, particularmente al manipular archivos y contraseñas, puede ser fortalecida. La falta de validación adecuada puede resultar en vulnerabilidades de seguridad.
+
+4. **Manejo de Errores y Excepciones:**
+   - El manejo de errores actual puede mejorarse para proporcionar mensajes más descriptivos y detallados. Esto facilitará la depuración y el diagnóstico de problemas potenciales.
 ## Conclusiones
 El proyecto ha logrado implementar de manera funcional las tres principales características solicitadas:
 
