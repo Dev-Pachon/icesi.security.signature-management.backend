@@ -48,4 +48,18 @@ Se manejan excepciones para responder a situaciones de error con mensajes inform
 ## Dificultades
 
 ## Conclusiones
+El proyecto ha logrado implementar de manera funcional las tres principales características solicitadas:
+
+Generación de Claves RSA:
+La aplicación genera un par de claves RSA (pública y privada) y las almacena en archivos separados, protegiendo la clave privada con una contraseña.
+
+Firma de Archivos:
+Permite firmar archivos mediante la clave privada, generando una firma digital que se guarda en un archivo aparte.
+
+Verificación de Firmas:
+Ofrece la capacidad de verificar la firma digital de un archivo utilizando la clave pública correspondiente.
+La implementación se basa en un servicio web construido con Flask y utiliza la biblioteca cryptography para operaciones criptográficas. El código aborda los requisitos planteados de manera clara y efectiva.
+
+Las dificultades identificadas durante el desarrollo incluyen aspectos relacionados con la seguridad de contraseñas y archivos, validación de entradas y manejo de errores. Sin embargo, en términos de funcionalidad, el proyecto cumple con los objetivos establecidos.
+En conclusión, la aplicación actual logra satisfacer los requisitos del proyecto al proporcionar una solución completa para la generación, firma y verificación de claves digitales utilizando criptografía RSA.
 
